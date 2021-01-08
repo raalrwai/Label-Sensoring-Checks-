@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <h1 style="text-align:center"> Your task evaluations are downloading, please enable downloads if requested.</h1>
+</head>
+
+<body>
+    <body onLoad="loadJSON()">
+    <a></a>
+                       
+<script>     
+function loadJSON(callback) {   
+  var xobj = new XMLHttpRequest(); // Begin a new request
+  xobj.overrideMimeType("application/json");
+  xobj.open('GET', 'tasks.json', true);
+  xobj.onreadystatechange = function() {
+  if (xobj.readyState == 4 && xobj.status == 200) {
+  var response = xobj.responseText; // HTTP response as a string
+  var tasks = JSON.parse(response); // Parse it to a JS array
+  var arr = [['Task ID', 'Annotation Type', 'Annotation ID', 'Severity', 'Notes']];
+
+  for(let i = 0; i < tasks.length; i++) {//Iterate through each Task 
+    let items = tasks[i].response.annotations.length;
+    console.log(items);
+    for(let n = 0; n < items; n++){ //iterate through each task's Annotations
+      let str2 = ""
+      let notes = ""
+      
+      console.log(tasks[i].response.annotations[n]);
+      var count = 0;
+      if(tasks[i].response.annotations[n].attributes.occlusion>"50%"){//check annotations for possible errors
+        console.log("occlusion > 50%");
+        count++;
+        notes += "occlusion > 50%"
+      }
+      if(tasks[i].response.annotations[n].attributes.truncation>"50%"){
+        console.log("truncation > 50");
+        count++;
+        if(notes === ""){
+          notes += "truncation > 50%"
+        }else{
+          notes += " + truncation > 50%"
+        }
+      }
+      if(tasks[i].response.annotations[n].attributes.truncation>"0%" && (tasks[i].response.annotations[n].attributes.background_color=="white" || tasks[i].response.annotations[n].attributes.background_color=="green")){
+        console.log("accessing attributes correctly");
+        count++;
+        if(notes === ""){
+          notes += "possible mislabel"
+        }else{
+          notes += " + possible mislabel"
+        }
+      }
+      if(tasks[i].response.annotations[n].attributes.occlusion>"0%" && (tasks[i].response.annotations[n].attributes.background_color=="white" || tasks[i].response.annotations[n].attributes.background_color=="green")){
+        console.log("accessing attributes correctly");
+        count++;
+        if(notes === ""){
+          notes += "possible mislabel"
+        }else{
+          notes += " + possible mislabel"
+        }
+      }
+      if(tasks[i].response.annotations[n].attributes.background_color=="not_applicable" || tasks[i].response.annotations[n].attributes.background_color=="other"){
+        console.log("truncation > 50%");
+        count++;
+        if(notes === ""){
+          notes += "possible mislabel"
+        }else{
+          notes += " + possible mislabel"
+        }
+      }
+      if(count >= 1){ //categorize flags as either a warning that should be checked, or an error that this is an incorrect labeling.
+      if(count >=2){
+         str2 = "error";
+      }else{
+       str2 = "warning";
+           }
+          }
+          console.log(count);
+          if(str2){
+            console.log(str2);
+            arr.push([tasks[i].task_id, tasks[i].response.annotations[n].label, tasks[i].response.annotations[n].uuid, str2, notes])
+            
+
+        }
+        }
+      
+       } 
+       let csvContent = "data:text/csv;charset=utf-8,";//output flags into a CSV downloadable file 
+        arr.forEach(function(rowArray) {
+        let row = rowArray.join(",");
+        csvContent += row + "\r\n";
+      });
+      
+        var encodedUri = encodeURI(csvContent);
+        var link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "task_checks.csv");
+        document.body.appendChild(link); // Required for FF
+
+        link.click(); 
+
+      }
+ callback(xobj.responseText);
+    }
+  
+xobj.send(null);   
+} 
+
+
+</script>
+
+</body>
+</html>
